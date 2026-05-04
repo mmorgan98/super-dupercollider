@@ -56,26 +56,41 @@ if (\Sound.asClass.isNil) {
         Pan2.ar(sig * env * amp, pan)
     }, (freq: 420, amp: 0.45, gate: 1, pan: 0, out: 0, pos: 0)),
 
-    names: [\kick, \snare, \hat, \openHat, \clap, \rim, \perc],
+    tom: Sound.new("tom", { |freq=140, amp=0.55, gate=1, pan=0, out=0, pos=0|
+        var env = EnvGen.kr(Env.perc(0.001, 0.22, curve: -5), gate: gate, doneAction: 2);
+        var pitch = EnvGen.kr(Env([freq * 1.4, freq], [0.06], -4), gate: gate);
+        var sig = SinOsc.ar(pitch) + (SinOsc.ar(pitch * 1.5) * 0.25);
+        Pan2.ar(sig * env * amp, pan)
+    }, (freq: 140, amp: 0.55, gate: 1, pan: 0, out: 0, pos: 0)),
 
-    play: { |self, name, overrides=nil|
-        var drum = self[name.asSymbol];
-        if (drum.isNil) {
-            ("[Drum] Unknown drum: " ++ name.asString).warn;
-            ^nil;
-        };
-        drum.play(overrides);
-    },
+    shaker: Sound.new("shaker", { |amp=0.25, gate=1, pan=0, out=0, pos=0|
+        var env = EnvGen.kr(Env.perc(0.001, 0.11, curve: -8), gate: gate, doneAction: 2);
+        var sig = HPF.ar(WhiteNoise.ar(1), 6000) * env;
+        Pan2.ar(sig * amp, pan)
+    }, (amp: 0.25, gate: 1, pan: 0, out: 0, pos: 0)),
 
-    stop: { |self, name|
-        var drum = self[name.asSymbol];
-        if (drum.notNil) { drum.stop };
-    },
+    crash: Sound.new("crash", { |amp=0.4, gate=1, pan=0, out=0, pos=0|
+        var env = EnvGen.kr(Env.perc(0.002, 1.6, curve: -4), gate: gate, doneAction: 2);
+        var sig = HPF.ar(WhiteNoise.ar(1), 4500);
+        sig = BPF.ar(sig, 7500, 0.5) + (HPF.ar(sig, 10000) * 0.7);
+        Pan2.ar(sig * env * amp, pan)
+    }, (amp: 0.4, gate: 1, pan: 0, out: 0, pos: 0)),
 
-    stopAll: { |self|
-        self[\names].do { |name| self[name].stop };
-    }
+    cowbell: Sound.new("cowbell", { |freq=560, amp=0.35, gate=1, pan=0, out=0, pos=0|
+        var env = EnvGen.kr(Env.perc(0.0005, 0.14, curve: -8), gate: gate, doneAction: 2);
+        var sig = SinOsc.ar(freq) + SinOsc.ar(freq * 1.42, 0, 0.7);
+        sig = HPF.ar(sig, 900);
+        Pan2.ar(sig * env * amp, pan)
+    }, (freq: 560, amp: 0.35, gate: 1, pan: 0, out: 0, pos: 0)),
+
+    snap: Sound.new("snap", { |amp=0.3, gate=1, pan=0, out=0, pos=0|
+        var env = EnvGen.kr(Env.perc(0.0005, 0.05, curve: -10), gate: gate, doneAction: 2);
+        var sig = BPF.ar(WhiteNoise.ar(1), 2800, 0.7) + HPF.ar(WhiteNoise.ar(0.4), 6000);
+        Pan2.ar(sig * env * amp, pan)
+    }, (amp: 0.3, gate: 1, pan: 0, out: 0, pos: 0)),
+
+    names: [\kick, \snare, \hat, \openHat, \clap, \rim, \perc, \tom, \shaker, \crash, \cowbell, \snap]
 );
 
-"Drum module ready: ~drum[\\kick].play, ~drum[\\clap].play, ~drum.play(\\openHat)".postln;
+"Drum module ready: ~drum[\\kick].play, ~drum[\\clap].play, ~drum[\\tom].play".postln;
 )

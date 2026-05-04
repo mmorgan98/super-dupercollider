@@ -1,9 +1,9 @@
 Sound : BaseModule {
     classvar <registry;
-    var <graph, <defaults, <defName, <node;
+    var <graph, <defaults, <defName, <node, <activeNodes;
 
     *initClass {
-        registry = IdentityDictionary.new;
+        registry = Dictionary.new;
     }
 
     *new { |name, graph, defaults = nil|
@@ -19,6 +19,7 @@ Sound : BaseModule {
         defaults = (inDefaults ? ()).copy;
         defName = ("snd_" ++ this.name).asSymbol;
         node = nil;
+        activeNodes = List.new;
         registry.put(this.name.asString, this);
         ^this;
     }
@@ -48,6 +49,7 @@ Sound : BaseModule {
     play { |overrides = nil|
         var server = Server.default;
         var params = defaults.copy;
+        var currentNode;
 
         if (server.serverRunning.not) {
             "[Sound] Server is not running. Boot with s.boot.".warn;
@@ -61,12 +63,19 @@ Sound : BaseModule {
         Routine({
             this.compile;
             server.sync;
-            node = Synth(defName, params.asKeyValuePairs, server.defaultGroup, \addToHead);
-            NodeWatcher.register(server);
-            node.register;
-            node.onFree({
-                node = nil;
-                state = \stopped;
+            currentNode = Synth(defName, params.asKeyValuePairs, server.defaultGroup, \addToHead);
+            node = currentNode;
+            activeNodes.add(currentNode);
+            NodeWatcher.register(currentNode);
+            currentNode.register;
+            currentNode.onFree({
+                activeNodes.remove(currentNode);
+                if (node === currentNode) {
+                    node = nil;
+                };
+                if (activeNodes.isEmpty) {
+                    state = \stopped;
+                };
             });
             state = \playing;
         }).play(SystemClock);
@@ -75,10 +84,11 @@ Sound : BaseModule {
     }
 
     stop {
-        if (node.notNil) {
-            if (node.isPlaying) { node.free };
-            node = nil;
+        activeNodes.copy.do { |n|
+            if (n.notNil and: { n.isPlaying }) { n.free };
         };
+        activeNodes.clear;
+        node = nil;
         state = \stopped;
         ^this;
     }

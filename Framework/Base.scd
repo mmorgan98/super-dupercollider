@@ -14,6 +14,10 @@ var projectPath = (fwPath +/+ "..").standardizePath;
         var loaded = [];
         var loadFromDir;
         var loadNamedFolder;
+        var allFolders;
+        var priority;
+        var matchedFolder;
+        var loadedFolderNames;
 
         loadFromDir = { |dir|
             dir.files
@@ -35,7 +39,6 @@ var projectPath = (fwPath +/+ "..").standardizePath;
         loadNamedFolder = { |folderName|
             var dir = PathName.new((~fw[\libraryPath] +/+ folderName.asString).standardizePath);
             if (dir.isFolder.not) {
-                ("[fw] Library folder not found: " ++ folderName.asString).warn;
                 ^nil;
             };
             loadFromDir.(dir);
@@ -49,9 +52,23 @@ var projectPath = (fwPath +/+ "..").standardizePath;
         if (folders.notNil and: { folders.isKindOf(SequenceableCollection) }) {
             folders.do { |folderName| loadNamedFolder.(folderName) };
         } {
-            libraryDir.folders
-                .sort({ |a, b| a.fileName <= b.fileName })
-                .do({ |folder| loadFromDir.(folder) });
+            allFolders = libraryDir.folders.sort({ |a, b| a.fileName <= b.fileName });
+            priority = ["sounds", "sequences", "tracks", "phrases"];
+            loadedFolderNames = [];
+
+            priority.do { |name|
+                matchedFolder = allFolders.detect { |folder| folder.fileName.asString.toLower == name };
+                if (matchedFolder.notNil) {
+                    loadFromDir.(matchedFolder);
+                    loadedFolderNames = loadedFolderNames.add(matchedFolder.fileName.asString.toLower);
+                };
+            };
+
+            allFolders.do { |folder|
+                if (loadedFolderNames.includes(folder.fileName.asString.toLower).not) {
+                    loadFromDir.(folder);
+                };
+            };
         };
 
         ("[fw] Loaded library modules (" ++ loaded.size ++ "):").postln;
@@ -69,11 +86,36 @@ if (\Sound.asClass.isNil) {
     "[fw] Sound class is not compiled yet.".warn;
     "[fw] Add `Framework/Classes` to your SC class library include path (or copy those .sc files into Extensions), then recompile (Ctrl+Shift+L).".postln;
 } {
-    "Framework loaded (BaseModule + Sound classes available).".postln;
+    if (\Sequence.asClass.isNil) {
+        "[fw] Sequence class is not compiled yet.".warn;
+        "Framework loaded (BaseModule + Sound available). Recompile to enable Sequence.".postln;
+    } {
+        "Framework loaded (BaseModule + Sound + Sequence classes available).".postln;
+        ~clock = (
+            setBpm: { |self, bpm=140|
+                Sequence.setBpm(bpm);
+            },
+            bpm: { |self| Sequence.bpm },
+            beat: { |self| Sequence.beat },
+            stop: { |self| Sequence.stopClock }
+        );
+        ~seq = (
+            new: { |self, name, sound, steps=nil, stepBeats=0.25, baseParams=nil, loop=true|
+                Sequence.new(name, sound, steps, stepBeats, baseParams, loop);
+            },
+            named: { |self, name| Sequence.named(name) },
+            setBpm: { |self, bpm=140| Sequence.setBpm(bpm) },
+            bpm: { |self| Sequence.bpm },
+            beat: { |self| Sequence.beat },
+            play: { |self, name, overrides=nil, quant=1| Sequence.play(name, overrides, quant) },
+            stop: { |self, name| Sequence.stop(name) },
+            stopAll: { |self| Sequence.stopAll }
+        );
+    };
 };
 
 if (~fw[\autoLoadLibrary]) {
     "[fw] Auto-loading Library modules...".postln;
-    ~fw[\loadLibraryModules].();
+    ~fw[\loadLibraryModules].(["Sounds", "Sequences"]);
 };
 )
