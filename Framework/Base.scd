@@ -117,5 +117,11 @@ if (\Sound.asClass.isNil) {
 if (~fw[\autoLoadLibrary]) {
     "[fw] Auto-loading Library modules...".postln;
     ~fw[\loadLibraryModules].(["Sounds", "Sequences"]);
+    // Make missing sound modules obvious (e.g. Guitar.scd only on a feature branch).
+    [\drum, \bass, \chord, \lead, \synth, \fx, \vocal, \guitar].do { |key|
+        if (currentEnvironment.at(key).isNil) {
+            ("[fw] ~" ++ key ++ " is nil — Library/Sounds module missing or Sound class not compiled.").postln;
+        };
+    };
 };
 )
