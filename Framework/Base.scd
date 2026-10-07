@@ -90,7 +90,6 @@ if (\Sound.asClass.isNil) {
         "[fw] Sequence class is not compiled yet.".warn;
         "Framework loaded (BaseModule + Sound available). Recompile to enable Sequence.".postln;
     } {
-        "Framework loaded (BaseModule + Sound + Sequence classes available).".postln;
         ~clock = (
             setBpm: { |self, bpm=140|
                 Sequence.setBpm(bpm);
@@ -111,6 +110,24 @@ if (\Sound.asClass.isNil) {
             stop: { |self, name| Sequence.stop(name) },
             stopAll: { |self| Sequence.stopAll }
         );
+
+        if (\Section.asClass.isNil) {
+            "[fw] Section class is not compiled yet.".warn;
+            "Framework loaded (BaseModule + Sound + Sequence available). Recompile to enable Section.".postln;
+        } {
+            "Framework loaded (BaseModule + Sound + Sequence + Section classes available).".postln;
+            ~section = (
+                new: { |self, name, sequences=nil|
+                    Section.new(name, sequences);
+                },
+                named: { |self, name| Section.named(name) },
+                setBpm: { |self, bpm=140| Section.setBpm(bpm) },
+                bpm: { |self| Section.bpm },
+                play: { |self, name, overrides=nil, quant=1| Section.play(name, overrides, quant) },
+                stop: { |self, name| Section.stop(name) },
+                stopAll: { |self| Section.stopAll }
+            );
+        };
     };
 };
 
