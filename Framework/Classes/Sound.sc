@@ -39,7 +39,8 @@ Sound : BaseModule {
 
         SynthDef(defName, { |out = 0, freq = 440, amp = 0.2, gate = 1, pan = 0, pos = 0|
             var signal = graph.value(freq, amp, gate, pan, out, pos);
-            signal = signal.isArray.if({ Mix(signal) }, { signal });
+            // Keep multi-channel graphs (e.g. Pan2) stereo on Out.ar —
+            // do not Mix them down to mono on bus 0.
             Out.ar(out, signal);
         }).send(server);
 
